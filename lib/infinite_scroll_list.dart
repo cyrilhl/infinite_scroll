@@ -54,22 +54,31 @@ class InfiniteScrollList extends StatefulWidget {
 
 class _InfiniteScrollListState extends State<InfiniteScrollList> {
   final ScrollController _sc = ScrollController();
-  bool _loading = true;
+  bool _loading = false;
   int page = 1;
+  bool _handleSizeChange = false;
+
   @override
   void initState() {
     super.initState();
-    _removeLoader();
-    _sc.addListener(() async {
-      if (_sc.position.atEdge && _sc.offset > 0) {
-        if (!widget.everythingLoaded) {
-          setState(() {
-            _loading = true;
-          });
-          await widget.onLoadingStart?.call(page++);
-        }
+    //_removeLoader();
+    _sc.addListener(_checkIfNeedMore);
+  }
+
+  void _checkIfNeedMore({isSizeChanged = false}) async {
+    if (_sc.position.atEdge && (_sc.offset > 0 || isSizeChanged)) {
+      if (!widget.everythingLoaded &&
+          !_loading &&
+          widget.onLoadingStart != null) {
+        setState(() {
+          _loading = true;
+        });
+        await widget.onLoadingStart?.call(page++);
+        setState(() {
+          _loading = false;
+        });
       }
-    });
+    }
   }
 
   Future<void> _removeLoader() async {
@@ -95,9 +104,7 @@ class _InfiniteScrollListState extends State<InfiniteScrollList> {
         widget.loadingWidget ??
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Center(
-                child: CircularProgressIndicator.adaptive(),
-              ),
+              child: Center(child: CircularProgressIndicator.adaptive()),
             ),
       );
     }
@@ -111,29 +118,40 @@ class _InfiniteScrollListState extends State<InfiniteScrollList> {
         ? widget.loadingWidget ??
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Center(
-                child: CircularProgressIndicator.adaptive(),
-              ),
+              child: Center(child: CircularProgressIndicator.adaptive()),
             )
-        : ListView(
-            physics: widget.physics,
-            reverse: widget.reverse,
-            primary: widget.primary,
-            itemExtent: widget.itemExtent,
-            prototypeItem: widget.prototypeItem,
-            cacheExtent: widget.cacheExtent,
-            semanticChildCount: widget.semanticChildCount,
-            restorationId: widget.restorationId,
-            addAutomaticKeepAlives: widget.addAutomaticKeepAlives,
-            addRepaintBoundaries: widget.addRepaintBoundaries,
-            addSemanticIndexes: widget.addSemanticIndexes,
-            dragStartBehavior: widget.dragStartBehavior,
-            keyboardDismissBehavior: widget.keyboardDismissBehavior,
-            clipBehavior: widget.clipBehavior,
-            controller: _sc,
-            padding: widget.padding,
-            shrinkWrap: widget.shrinkWrap,
-            children: getChildrens,
+        : NotificationListener<ScrollMetricsNotification>(
+            onNotification: (notification) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!_handleSizeChange) {
+                  _handleSizeChange = true;
+                } else {
+                  _handleSizeChange = false;
+                  _checkIfNeedMore(isSizeChanged: true);
+                }
+              });
+              return false;
+            },
+            child: ListView(
+              physics: widget.physics,
+              reverse: widget.reverse,
+              primary: widget.primary,
+              itemExtent: widget.itemExtent,
+              prototypeItem: widget.prototypeItem,
+              cacheExtent: widget.cacheExtent,
+              semanticChildCount: widget.semanticChildCount,
+              restorationId: widget.restorationId,
+              addAutomaticKeepAlives: widget.addAutomaticKeepAlives,
+              addRepaintBoundaries: widget.addRepaintBoundaries,
+              addSemanticIndexes: widget.addSemanticIndexes,
+              dragStartBehavior: widget.dragStartBehavior,
+              keyboardDismissBehavior: widget.keyboardDismissBehavior,
+              clipBehavior: widget.clipBehavior,
+              controller: _sc,
+              padding: widget.padding,
+              shrinkWrap: widget.shrinkWrap,
+              children: getChildrens,
+            ),
           );
   }
 }
