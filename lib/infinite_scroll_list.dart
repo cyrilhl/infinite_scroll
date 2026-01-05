@@ -66,7 +66,7 @@ class _InfiniteScrollListState extends State<InfiniteScrollList> {
   }
 
   void _checkIfNeedMore({isSizeChanged = false}) async {
-    if (_sc.position.atEdge && (_sc.offset > 0 || isSizeChanged)) {
+    if (_sc.position.atEdge && (_sc.offset > 0 /*|| isSizeChanged*/)) {
       if (!widget.everythingLoaded &&
           !_loading &&
           widget.onLoadingStart != null) {

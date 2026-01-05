@@ -48,14 +48,14 @@ class HomePage extends StatelessWidget {
               'Infinite Scroll Package',
               style: Theme.of(context)
                   .textTheme
-                  .headline5
+                  .headlineLarge
                   ?.copyWith(color: Colors.white),
             ),
             Text(
               'Example App',
               style: Theme.of(context)
                   .textTheme
-                  .bodyText2
+                  .bodyMedium
                   ?.copyWith(color: Colors.white),
             )
           ],

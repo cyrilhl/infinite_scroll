@@ -67,7 +67,7 @@ class ListItem extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(.3),
+        color: Theme.of(context).primaryColor.withValues(alpha: .3),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
@@ -78,7 +78,7 @@ class ListItem extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             text,
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
       ),
