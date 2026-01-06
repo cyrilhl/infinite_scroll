@@ -24,6 +24,9 @@ class InfiniteScrollList extends StatefulWidget {
   final String? restorationId;
   final Clip clipBehavior;
   final Widget? loadingWidget;
+
+  final bool isRefreshing;
+
   const InfiniteScrollList({
     Key? key,
     required this.children,
@@ -46,6 +49,7 @@ class InfiniteScrollList extends StatefulWidget {
     this.keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual,
     this.clipBehavior = Clip.hardEdge,
     this.loadingWidget,
+    this.isRefreshing = false,
   }) : super(key: key);
 
   @override
@@ -58,15 +62,42 @@ class _InfiniteScrollListState extends State<InfiniteScrollList> {
   int page = 1;
   bool _handleSizeChange = false;
 
+  // previous refresh status
+  bool _previousIsRefreshing = false;
+
   @override
   void initState() {
     super.initState();
-    //_removeLoader();
     _sc.addListener(_checkIfNeedMore);
+    _previousIsRefreshing = widget.isRefreshing;
+  }
+
+  @override
+  void didUpdateWidget(covariant InfiniteScrollList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!oldWidget.isRefreshing && widget.isRefreshing) {
+      // reset page when refreshing
+      setState(() {
+        page = 1;
+        _loading = false;
+      });
+    }
+
+    _previousIsRefreshing = oldWidget.isRefreshing;
+  }
+
+  @override
+  void dispose() {
+    _sc.dispose();
+    super.dispose();
   }
 
   void _checkIfNeedMore({isSizeChanged = false}) async {
-    if (_sc.position.atEdge && (_sc.offset > 0 /*|| isSizeChanged*/)) {
+    // when refresh, not load more
+    if (widget.isRefreshing) return;
+
+    if (_sc.position.atEdge && (_sc.offset > 0 || isSizeChanged)) {
       if (!widget.everythingLoaded &&
           !_loading &&
           widget.onLoadingStart != null) {
@@ -99,7 +130,8 @@ class _InfiniteScrollListState extends State<InfiniteScrollList> {
     for (Widget child in widget.children) {
       childrens.add(child);
     }
-    if (!widget.everythingLoaded) {
+
+    if (!widget.everythingLoaded && !_loading && !widget.isRefreshing) {
       childrens.add(
         widget.loadingWidget ??
             const Padding(
@@ -114,44 +146,68 @@ class _InfiniteScrollListState extends State<InfiniteScrollList> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.children.isEmpty && _loading
-        ? widget.loadingWidget ??
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Center(child: CircularProgressIndicator.adaptive()),
-            )
-        : NotificationListener<ScrollMetricsNotification>(
-            onNotification: (notification) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!_handleSizeChange) {
-                  _handleSizeChange = true;
-                } else {
-                  _handleSizeChange = false;
-                  _checkIfNeedMore(isSizeChanged: true);
-                }
-              });
-              return false;
-            },
-            child: ListView(
-              physics: widget.physics,
-              reverse: widget.reverse,
-              primary: widget.primary,
-              itemExtent: widget.itemExtent,
-              prototypeItem: widget.prototypeItem,
-              cacheExtent: widget.cacheExtent,
-              semanticChildCount: widget.semanticChildCount,
-              restorationId: widget.restorationId,
-              addAutomaticKeepAlives: widget.addAutomaticKeepAlives,
-              addRepaintBoundaries: widget.addRepaintBoundaries,
-              addSemanticIndexes: widget.addSemanticIndexes,
-              dragStartBehavior: widget.dragStartBehavior,
-              keyboardDismissBehavior: widget.keyboardDismissBehavior,
-              clipBehavior: widget.clipBehavior,
-              controller: _sc,
-              padding: widget.padding,
-              shrinkWrap: widget.shrinkWrap,
-              children: getChildrens,
-            ),
+    if (widget.children.isEmpty && widget.isRefreshing) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            widget.loadingWidget ?? const CircularProgressIndicator.adaptive(),
+            const SizedBox(height: 16),
+            const Text('Loading...'),
+          ],
+        ),
+      );
+    }
+
+    if (widget.children.isEmpty && _loading) {
+      return widget.loadingWidget ??
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(child: CircularProgressIndicator.adaptive()),
           );
+    }
+
+    return NotificationListener<ScrollMetricsNotification>(
+      onNotification: (notification) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_handleSizeChange) {
+            _handleSizeChange = true;
+          } else {
+            _handleSizeChange = false;
+            _checkIfNeedMore(isSizeChanged: true);
+          }
+        });
+        return false;
+      },
+      child: ListView(
+        physics: widget.physics,
+        reverse: widget.reverse,
+        primary: widget.primary,
+        itemExtent: widget.itemExtent,
+        prototypeItem: widget.prototypeItem,
+        cacheExtent: widget.cacheExtent,
+        semanticChildCount: widget.semanticChildCount,
+        restorationId: widget.restorationId,
+        addAutomaticKeepAlives: widget.addAutomaticKeepAlives,
+        addRepaintBoundaries: widget.addRepaintBoundaries,
+        addSemanticIndexes: widget.addSemanticIndexes,
+        dragStartBehavior: widget.dragStartBehavior,
+        keyboardDismissBehavior: widget.keyboardDismissBehavior,
+        clipBehavior: widget.clipBehavior,
+        controller: _sc,
+        padding: widget.padding,
+        shrinkWrap: widget.shrinkWrap,
+        children: getChildrens,
+      ),
+    );
+  }
+
+  int get currentPage => page;
+
+  void resetPage() {
+    setState(() {
+      page = 1;
+      _loading = false;
+    });
   }
 }
