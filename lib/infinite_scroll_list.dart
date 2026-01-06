@@ -105,9 +105,7 @@ class _InfiniteScrollListState extends State<InfiniteScrollList> {
           _loading = true;
         });
         await widget.onLoadingStart?.call(page++);
-        setState(() {
-          _loading = false;
-        });
+        _loading = false;
       }
     }
   }
@@ -131,7 +129,7 @@ class _InfiniteScrollListState extends State<InfiniteScrollList> {
       childrens.add(child);
     }
 
-    if (!widget.everythingLoaded && !_loading && !widget.isRefreshing) {
+    if (!widget.everythingLoaded) {
       childrens.add(
         widget.loadingWidget ??
             const Padding(
